@@ -1,0 +1,250 @@
+using System.Collections;
+using System.Collections.Generic;
+using UnityEngine;
+using System.Threading;
+
+public class BaseSharpExamples : MonoBehaviour {
+    public void NoSyncCode() {
+        for (int i = 1; i < 6; i++) {
+            Thread myThread = new (Print);
+            myThread.Name = $"Поток {i}";
+            myThread.Start();
+        }
+
+        void Print() {
+            x = 1;
+            for (int i = 1; i < 6; i++) {
+                Console.WriteLine($"{Thread.CurrentThread.Name}: {x}");
+                x++;
+                Thread.Sleep(100);
+            }
+        }
+    }
+    
+    public void NoSyncResult() {
+        Поток 1: 1
+        Поток 5: 1
+        Поток 4: 1
+        Поток 2: 1
+        Поток 3: 1
+        Поток 1: 6
+        Поток 5: 7
+        Поток 3: 7
+        Поток 2: 7
+        Поток 4: 9
+        Поток 1: 11
+        Поток 4: 11
+        Поток 2: 11
+        Поток 3: 14
+        Поток 5: 11
+        Поток 1: 16
+        Поток 2: 16
+        Поток 3: 16
+        Поток 5: 18
+        Поток 4: 16
+        Поток 1: 21
+        Поток 5: 21
+        Поток 3: 21
+        Поток 2: 21
+        Поток 4: 21
+    }
+    public void lockExampleCode(){
+        int x = 0;
+        object locker = new();  // объект-заглушка
+        // запускаем пять потоков
+        for (int i = 1; i < 6; i++)
+        {
+            Thread myThread = new(Print);
+            myThread.Name = $"Поток {i}";
+            myThread.Start();
+        }
+         
+         
+        void Print()
+        {
+            lock (locker)
+            {
+                x = 1;
+                for (int i = 1; i < 6; i++)
+                {
+                    Console.WriteLine($"{Thread.CurrentThread.Name}: {x}");
+                    x++;
+                    Thread.Sleep(100);
+                }
+            }
+        }
+    }
+    
+    public void lockResult(){
+        Поток 1: 1
+        Поток 1: 2
+        Поток 1: 3
+        Поток 1: 4
+        Поток 1: 5
+        Поток 5: 1
+        Поток 5: 2
+        Поток 5: 3
+        Поток 5: 4
+        Поток 5: 5
+        Поток 3: 1
+        Поток 3: 2
+        Поток 3: 3
+        Поток 3: 4
+        Поток 3: 5
+        Поток 2: 1
+        Поток 2: 2
+        Поток 2: 3
+        Поток 2: 4
+        Поток 2: 5
+        Поток 4: 1
+        Поток 4: 2
+        Поток 4: 3
+        Поток 4: 4
+        Поток 4: 5
+    }
+    
+    public void AutoResetEvent(){
+        int x = 0;  // общий ресурс
+         
+        AutoResetEvent waitHandler = new AutoResetEvent(true);  // объект-событие
+         
+        // запускаем пять потоков
+        for (int i = 1; i < 6; i++)
+        {
+            Thread myThread = new(Print);
+            myThread.Name = $"Поток {i}";
+            myThread.Start();
+        }
+         
+         
+        void Print()
+        {
+            waitHandler.WaitOne();  // ожидаем сигнала
+            x = 1;
+            for (int i = 1; i < 6; i++)
+            {
+                Console.WriteLine($"{Thread.CurrentThread.Name}: {x}");
+                x++;
+                Thread.Sleep(100);
+            }
+            waitHandler.Set();  //  сигнализируем, что waitHandler в сигнальном состоянии
+        }
+    }
+    public void Mutex{
+        int x = 0;
+        Mutex mutexObj = new();
+         
+        // запускаем пять потоков
+        for (int i = 1; i < 6; i++)
+        {
+            Thread myThread = new(Print);
+            myThread.Name = $"Поток {i}";
+            myThread.Start(); 
+        }
+         
+        void Print()
+        {
+            mutexObj.WaitOne();     // приостанавливаем поток до получения мьютекса
+            x = 1;
+            for (int i = 1; i < 6; i++)
+            {
+                Console.WriteLine($"{Thread.CurrentThread.Name}: {x}");
+                x++;
+                Thread.Sleep(100);
+            }
+            mutexObj.ReleaseMutex();    // освобождаем мьютекс
+        }
+    }
+    
+    public void semafor{
+        // запускаем пять потоков
+        for (int i = 1; i < 6; i++)
+        {
+            Reader reader = new Reader(i);
+        }
+        class Reader
+        {
+            // создаем семафор
+            static Semaphore sem = new Semaphore(3, 3);
+            Thread myThread;
+            int count = 3;// счетчик чтения
+         
+            public Reader(int i)
+            {
+                myThread = new Thread(Read);
+                myThread.Name = $"Читатель {i}";
+                myThread.Start();
+            }
+         
+            public void Read()
+            {
+                while (count > 0)
+                {
+                    sem.WaitOne();  // ожидаем, когда освободиться место
+         
+                    Console.WriteLine($"{Thread.CurrentThread.Name} входит в библиотеку");
+         
+                    Console.WriteLine($"{Thread.CurrentThread.Name} читает");
+                    Thread.Sleep(1000);
+         
+                    Console.WriteLine($"{Thread.CurrentThread.Name} покидает библиотеку");
+         
+                    sem.Release();  // освобождаем место
+         
+                    count--;
+                    Thread.Sleep(1000);
+                }
+            }
+        }
+    }
+    
+    public void semaforResult(){
+        Читатель 5 входит в библиотеку
+        Читатель 5 читает
+        Читатель 4 входит в библиотеку
+        Читатель 4 читает
+        Читатель 1 входит в библиотеку
+        Читатель 1 читает
+        Читатель 5 покидает библиотеку
+        Читатель 1 покидает библиотеку
+        Читатель 4 покидает библиотеку
+        Читатель 3 входит в библиотеку
+        Читатель 3 читает
+        Читатель 2 входит в библиотеку
+        Читатель 2 читает
+        Читатель 4 входит в библиотеку
+        Читатель 3 покидает библиотеку
+        Читатель 2 покидает библиотеку
+        Читатель 5 входит в библиотеку
+        Читатель 5 читает
+        Читатель 4 читает
+        Читатель 1 входит в библиотеку
+        Читатель 1 читает
+        Читатель 5 покидает библиотеку
+        Читатель 3 входит в библиотеку
+        Читатель 3 читает
+        Читатель 4 покидает библиотеку
+        Читатель 1 покидает библиотеку
+        Читатель 2 входит в библиотеку
+        Читатель 2 читает
+        Читатель 3 покидает библиотеку
+        Читатель 5 входит в библиотеку
+        Читатель 5 читает
+        Читатель 2 покидает библиотеку
+        Читатель 1 входит в библиотеку
+        Читатель 4 входит в библиотеку
+        Читатель 1 читает
+        Читатель 4 читает
+        Читатель 5 покидает библиотеку
+        Читатель 1 покидает библиотеку
+        Читатель 4 покидает библиотеку
+        Читатель 2 входит в библиотеку
+        Читатель 3 входит в библиотеку
+        Читатель 2 читает
+        Читатель 3 читает
+        Читатель 3 покидает библиотеку
+        Читатель 2 покидает библиотеку
+    }
+    
+    
+}
